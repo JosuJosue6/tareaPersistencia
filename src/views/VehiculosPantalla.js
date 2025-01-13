@@ -1,21 +1,29 @@
 import React, { useState } from "react";
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, Button, Alert } from "react-native";
 import { obtenerVehiculos, eliminarVehiculo } from "../controllers/VehiculoConstroller";
+import integrantes from "../models/Integrantes";
+import { saveDataToJson, saveDataToXml } from "../utils/storage";
+import vehiculos from "../models/vehiculos";
 
 const VehiculosPantalla = ({ navigation }) => {
     const [vehiculos, setVehiculos] = useState(obtenerVehiculos()); // Estado local para manejar la lista de vehículos
 
     const handleSignOut = async () => {
         try {
-           // Cierra la sesión de Firebase
-          navigation.reset({
-            index: 0, // Esto indica que la nueva pantalla será la principal
-            routes: [{ name: "LoginPantalla" }], // Reemplaza "Login" con el nombre de tu pantalla de inicio de sesión
-          });
+
+            // Guarda los vehículos antes de cerrar sesión
+            const data = { vehiculos, integrantes };
+            await saveDataToJson(data);
+            await saveDataToXml(data);
+
+            navigation.reset({
+                index: 0, // Esto indica que la nueva pantalla será la principal
+                routes: [{ name: "LoginPantalla" }], // Reemplaza "Login" con el nombre de tu pantalla de inicio de sesión
+            });
         } catch (error) {
-          console.error("Error al cerrar sesión:", error);
+            console.error("Error al cerrar sesión:", error);
         }
-      };
+    };
 
     const handleDelete = (placa) => {
         Alert.alert(

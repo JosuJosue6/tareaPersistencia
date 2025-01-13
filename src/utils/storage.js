@@ -1,61 +1,77 @@
-import * as FileSystem from 'expo-file-system';
+import RNFS from 'react-native-fs';
 import { parseStringPromise, Builder } from 'react-native-xml2js';
 
-const vehiculosJsonFilePath = `${FileSystem.documentDirectory}vehiculos.json`;
-const vehiculosXmlFilePath = `${FileSystem.documentDirectory}vehiculos.xml`;
-const integrantesJsonFilePath = `${FileSystem.documentDirectory}integrantes.json`;
-const integrantesXmlFilePath = `${FileSystem.documentDirectory}integrantes.xml`;
+const datosDirectory = `${RNFS.ExternalDirectoryPath}/datos/`;
 
-export const saveDataToJson = async (data, filePath) => {
-    console.log(`Guardando datos en JSON en ${filePath}...`);
-    await FileSystem.writeAsStringAsync(filePath, JSON.stringify(data));
-    console.log("Datos guardados en JSON.");
-    console.log(data);
-};
-
-export const loadDataFromJson = async (filePath) => {
-    try {
-        console.log(`Leyendo datos desde JSON en ${filePath}...`);
-        const data = await FileSystem.readAsStringAsync(filePath);
-        console.log("Datos leídos desde JSON.");
-        console.log(data);
-        return JSON.parse(data);
-    } catch (error) {
-        console.log("No se encontraron datos en JSON.");
-        return null;
+// Crear la carpeta 'datos' si no existe
+const ensureDatosDirectoryExists = async () => {
+    const dirInfo = await RNFS.stat(datosDirectory).catch(() => null);
+    if (!dirInfo || !dirInfo.isDirectory()) {
+        console.log("Creando carpeta 'datos'...");
+        await RNFS.mkdir(datosDirectory);
+        console.log("Carpeta 'datos' creada.");
     }
 };
 
-export const saveDataToXml = async (data, filePath) => {
-    console.log(`Guardando datos en XML en ${filePath}...`);
-    const builder = new Builder();
-    const xml = builder.buildObject({ data });
-    await FileSystem.writeAsStringAsync(filePath, xml);
-    console.log("Datos guardados en XML.");
-    console.log(data);
+const jsonFilePath = `${datosDirectory}/datos.json`;
+const xmlFilePath = `${datosDirectory}/datos.xml`;
+
+export const saveDataToJson = async (data) => {
+    await ensureDatosDirectoryExists();
+    if (!data || !data.vehiculos || !data.integrantes) {
+        console.error("Datos a guardar en JSON son nulos o incompletos.");
+        return;
+    }
+    console.log(`Guardando datos en JSON en ${jsonFilePath}...`);
+    await RNFS.writeFile(jsonFilePath, JSON.stringify(data), 'utf8');
+    console.log("Datos guardados en JSON.");
 };
 
-export const loadDataFromXml = async (filePath) => {
+export const loadDataFromJson = async () => {
     try {
-        console.log(`Leyendo datos desde XML en ${filePath}...`);
-        const data = await FileSystem.readAsStringAsync(filePath);
+        await ensureDatosDirectoryExists();
+        console.log(`Leyendo datos desde JSON en ${jsonFilePath}...`);
+        const data = await RNFS.readFile(jsonFilePath, 'utf8');
+        console.log("Datos leídos desde JSON.");
+        return JSON.parse(data);
+    } catch (error) {
+        console.log("No se encontraron datos en JSON.");
+        return { vehiculos: [], integrantes: [] };
+    }
+};
+
+export const saveDataToXml = async (data) => {
+    await ensureDatosDirectoryExists();
+    if (!data || !data.vehiculos || !data.integrantes) {
+        console.error("Datos a guardar en XML son nulos o incompletos.");
+        return;
+    }
+    console.log(`Guardando datos en XML en ${xmlFilePath}...`);
+    const builder = new Builder();
+    const xml = builder.buildObject({ data });
+    await RNFS.writeFile(xmlFilePath, xml, 'utf8');
+    console.log("Datos guardados en XML.");
+};
+
+export const loadDataFromXml = async () => {
+    try {
+        await ensureDatosDirectoryExists();
+        console.log(`Leyendo datos desde XML en ${xmlFilePath}...`);
+        const data = await RNFS.readFile(xmlFilePath, 'utf8');
         const result = await parseStringPromise(data);
         console.log("Datos leídos desde XML.");
         return result.data;
     } catch (error) {
         console.log("No se encontraron datos en XML.");
-        return null;
+        return { vehiculos: [], integrantes: [] };
     }
 };
 
-// Funciones específicas para vehiculos
-export const saveVehiculosToJson = async (data) => saveDataToJson(data, vehiculosJsonFilePath);
-export const loadVehiculosFromJson = async () => loadDataFromJson(vehiculosJsonFilePath);
-export const saveVehiculosToXml = async (data) => saveDataToXml(data, vehiculosXmlFilePath);
-export const loadVehiculosFromXml = async () => loadDataFromXml(vehiculosXmlFilePath);
-
-// Funciones específicas para integrantes
-export const saveIntegrantesToJson = async (data) => saveDataToJson(data, integrantesJsonFilePath);
-export const loadIntegrantesFromJson = async () => loadDataFromJson(integrantesJsonFilePath);
-export const saveIntegrantesToXml = async (data) => saveDataToXml(data, integrantesXmlFilePath);
-export const loadIntegrantesFromXml = async () => loadDataFromXml(integrantesXmlFilePath);
+export const listFilesInDatosDirectory = async () => {
+    try {
+        const files = await RNFS.readDir(datosDirectory);
+        console.log("Archivos en el directorio 'datos':", files);
+    } catch (error) {
+        console.log("Error al listar archivos en el directorio 'datos':", error);
+    }
+};
